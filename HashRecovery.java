@@ -67,6 +67,10 @@ public class HashRecovery {
 			usage();
 		}
 		
+		if (algo.equals(null)) {
+			algo = "MD5";
+		}
+		
 		//let's ask for the hash to recover in a fancy dialog :)
 		String hash = JOptionPane.showInputDialog(null, "Hash to recover: ", PROGNAME+" "+VERSION, 1);
 		
