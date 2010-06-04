@@ -1,5 +1,5 @@
 /**
- * This is a java program that tries to recover MD5 Hashes using 
+ * This is a java program that tries to recover crypto hashes using 
  * a dictionary aka wordlist (not included)
  * @author Copyright 2007 rogeriopvl, <http://www.rogeriopvl.com>
  * @version 0.2
@@ -30,71 +30,50 @@
 import java.util.Scanner;
 import java.io.FileReader;
 import java.io.FileNotFoundException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import javax.swing.JOptionPane;
 
 
-public class MD5Recovery {
+public class HashRecovery {
 
-	private static final String PROGNAME = "MD5Recovery";
-	private static final String VERSION = "v0.2";
-	private static final int MD5_LENGTH = 32;
+	private static final String PROGNAME = "HashRecovery";
+	private static final String VERSION = "v0.5";
+	private static final int MIN_HASH_LENGTH = 32;
 	private static final String EMPTY_HASH = "d41d8cd98f00b204e9800998ecf8427e";
-
-	/**
-	 * Converts an array of bytes to a String
-	 * @param bytes the array of bytes to be converted
-	 * @return the string converted
-	 */	
-	private static String byteToString (byte[] bytes) {
-
-		StringBuilder s = new StringBuilder();
-
-		for (int i=0; i<bytes.length;i++) {
-			int highEnd = ((bytes[i]>>4) & 0xf)<<4;
-			int lowEnd = bytes[i] & 0xf;
-
-			if (highEnd == 0)
-				s.append('0');
-			s.append(Integer.toHexString(highEnd | lowEnd));
-		}
-		return s.toString();
-	}
-
-	/**
-	 * Generates an MD5 hash from a given string in the form of byte array
-	 * @param string to generate the hash
-	 * @return array of bytes representing the hash
-	 */	
-	private static byte[] generateMD5 (String str) throws NoSuchAlgorithmException {
-
-		MessageDigest md = MessageDigest.getInstance("MD5");
-		md.update(str.getBytes());
-		byte[] hashMD5 = md.digest();
-
-		return hashMD5;
-	}
 
 	/**
 	 * Main method
 	 * @param args command line arguments
 	 * @throws FileNotFoundException
-	 * @throws NoSuchAlgorithmException
 	 */
-	public static void main (String [] args) throws FileNotFoundException, NoSuchAlgorithmException {
+	public static void main (String [] args) throws FileNotFoundException {
 
-		if (args.length != 1) {
-			System.err.println ("Usage: "+PROGNAME+" <dicionary file>");
-			System.exit(1);
+		String algo = null;
+		String dictionaryPath = null;
+
+		if (args.length < 1) {
+			usage();
 		}
+		else if (args[0].equals("-a")) {
+			if (args.length != 3) {
+				usage();
+			}
+			else {
+				algo = args[1];
+				dictionaryPath = args[2];
+			}
+		}
+		else {
+			usage();
+		}
+		
 		//let's ask for the hash to recover in a fancy dialog :)
-		String hash = JOptionPane.showInputDialog(null, "MD5 hash to recover: ", PROGNAME+" "+VERSION, 1);
+		String hash = JOptionPane.showInputDialog(null, "Hash to recover: ", PROGNAME+" "+VERSION, 1);
 		
-		if (hash.length() != MD5_LENGTH)
-			System.err.println ("Error: not a valid MD5 hash, proceeding anyway...");
+		if (hash.length() < MIN_HASH_LENGTH)
+			System.err.println ("Warning: probably not a valid hash, proceeding anyway...");
 		
-		Scanner infile = new Scanner(new FileReader (args[0]));
+		Scanner infile = new Scanner(new FileReader(dictionaryPath));
 
 		String line;
 		int count = 0;			
@@ -108,14 +87,30 @@ public class MD5Recovery {
 				System.out.println ("Done it! That's the hash of an empty string!");
 				System.exit(0);
 			}
-			if (hash.equals(byteToString(generateMD5(line)))) {
-				System.out.println ("Houston, we've done it!: "+line);
-				System.out.println ("Sucess after "+count+" words.");
-				System.exit(0);
+			
+			try {
+				if (hash.equals(HashUtils.generateHash(line, algo))) {
+					System.out.println ("Houston, we've done it!: "+line);
+					System.out.println ("Sucess after "+count+" words.");
+					System.exit(0);
+				}
+			}
+			catch(NoSuchAlgorithmException e) {
+				System.err.println("Error: Unsupported algorithm - "+algo);
+				System.exit(1);
 			}
 		}
-		System.out.println ("Unable to recover MD5 hash. Try using a better dictionary file.");
+		infile.close();
+		System.out.println ("Unable to recover hash. Try using a better dictionary file.");
 	}//end of main
+	
+	/**
+	 * Prints the usage example and exits the program
+	 */
+	private static void usage() {
+		System.err.println ("Usage: "+PROGNAME+" [-a <algo>] <dictionary file>");
+		System.exit(1);
+	}
 }//end of class
 
 
